@@ -61,7 +61,7 @@ MergedActor::MergedActor(string name, vector<AGameObject*> toCombine) : AGameObj
 					AGameObject* childCopy = new AGameObject("copy"); memcpy(childCopy, ((MergedActor*)objCopy)->getObjList()[j], sizeof(AGameObject));
 					childCopy->setPosition(childCopy->getLocalPosition() + objCopy->getLocalPosition());
 					childCopy->setRotation(childCopy->getLocalRotation() + objCopy->getLocalRotation());
-					childCopy->setScale(childCopy->getLocalScale() + objCopy->getLocalScale());
+					childCopy->setScale(childCopy->getLocalScale() * objCopy->getLocalScale());
 
 					objList.push_back(childCopy);
 				}
@@ -126,7 +126,7 @@ void MergedActor::draw(int width, int height)
 
 	this->localMatrix = cbData.worldMatrix;
 
-	this->constantBuffer->update(deviceContext, &cbData);
+	/*this->constantBuffer->update(deviceContext, &cbData);*/
 
 
 	for (int i = 0; i < objList.size(); i++)
@@ -137,6 +137,8 @@ void MergedActor::draw(int width, int height)
 
 		//Add object transformation
 		Matrix4x4 temp;
+		Matrix4x4 mergeTransform;
+		mergeTransform.setIdentity();
 
 		cbData.worldMatrix.setIdentity();
 
@@ -144,42 +146,70 @@ void MergedActor::draw(int width, int height)
 		world_cam.setIdentity();
 
 		temp.setIdentity();
-		temp.setTranslation(objList[i]->getLocalPosition());
-		cbData.worldMatrix *= temp;
+		temp.setTranslation(getLocalPosition());
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationX(getLocalRotation().m_x + objList[i]->getLocalRotation().m_x);
-		cbData.worldMatrix *= temp;
+		temp.setRotationX(getLocalRotation().m_x);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationY(getLocalRotation().m_y + objList[i]->getLocalRotation().m_y);
-		cbData.worldMatrix *= temp;
+		temp.setRotationY(getLocalRotation().m_y);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationZ(getLocalRotation().m_z + objList[i]->getLocalRotation().m_z);
-		cbData.worldMatrix *= temp;
+		temp.setRotationZ(getLocalRotation().m_z);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setScale((getLocalScale() * objList[i]->getLocalScale()));
-		cbData.worldMatrix *= temp;
+		temp.setScale((getLocalScale()));
+		mergeTransform *= temp;
 
-		temp.setIdentity();
-		temp.setTranslation(Vector3D(0, 0, 0));
-		cbData.worldMatrix *= temp;
+		if (objList[i]->transforms.size() > 2) {
+			cbData.worldMatrix = objList[i]->transforms[objList[i]->transforms.size() - 1];
 
-		//Anchor origin
-		Matrix4x4 translateToOrigin;
-		translateToOrigin.setIdentity();
-		translateToOrigin.setTranslation(Vector3D(0, 0, 0));
+			if (objList[i]->transforms.size() > 0) {
+				for (int j = objList[i]->transforms.size() - 2; j >= 0; j--) {
+					//cout << objList[i]->transforms[j].m_mat[3][1] << endl;
+					cbData.worldMatrix *= objList[i]->transforms[j];
+				}
+			}
+			temp.setIdentity();
+			temp.setTranslation(Vector3D(0, 0, 0));
+			cbData.worldMatrix *= temp;
+			cbData.worldMatrix *= mergeTransform;
+		}
 
-		Matrix4x4 newTranslation;
-		newTranslation.setIdentity();
-		newTranslation.setTranslation(getLocalPosition());
+		else {
 
-		translateToOrigin *= cbData.worldMatrix;
-		translateToOrigin *= newTranslation;
+			mergeTransform.setIdentity();
 
-		cbData.worldMatrix = translateToOrigin;
+			temp.setIdentity();
+			temp.setTranslation(objList[i]->getLocalPosition() + getLocalPosition());
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationX(getLocalRotation().m_x + objList[i]->getLocalRotation().m_x);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationY(getLocalRotation().m_y + objList[i]->getLocalRotation().m_y);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationZ(getLocalRotation().m_z + objList[i]->getLocalRotation().m_z);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setScale((getLocalScale() * objList[i]->getLocalScale()));
+			mergeTransform *= temp;
+
+			cbData.worldMatrix *= mergeTransform;
+
+			temp.setIdentity();
+			temp.setTranslation(Vector3D(0, 0, 0));
+			cbData.worldMatrix *= temp;
+		}
 
 		//Add camera transformation
 		Matrix4x4 cameraMatrix = SceneCameraHandler::getInstance()->getSceneCameraViewMatrix();
@@ -201,9 +231,6 @@ void MergedActor::draw(int width, int height)
 
 		deviceContext->drawIndexedTriangleList(objList[i]->getIndexBuffer()->getSizeIndexList(), 0, 0);
 	}
-
-
-
 }
 
 void MergedActor::drawGizmo(int width, int height)
@@ -219,6 +246,8 @@ void MergedActor::drawGizmo(int width, int height)
 
 		//Add object transformation
 		Matrix4x4 temp;
+		Matrix4x4 mergeTransform;
+		mergeTransform.setIdentity();
 
 		cbData.worldMatrix.setIdentity();
 
@@ -226,42 +255,69 @@ void MergedActor::drawGizmo(int width, int height)
 		world_cam.setIdentity();
 
 		temp.setIdentity();
-		temp.setTranslation(objList[i]->getLocalPosition());
-		cbData.worldMatrix *= temp;
+		temp.setTranslation(getLocalPosition());
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationX(getLocalRotation().m_x + objList[i]->getLocalRotation().m_x);
-		cbData.worldMatrix *= temp;
+		temp.setRotationX(getLocalRotation().m_x);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationY(getLocalRotation().m_y + objList[i]->getLocalRotation().m_y);
-		cbData.worldMatrix *= temp;
+		temp.setRotationY(getLocalRotation().m_y);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationZ(getLocalRotation().m_z + objList[i]->getLocalRotation().m_z);
-		cbData.worldMatrix *= temp;
+		temp.setRotationZ(getLocalRotation().m_z);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setScale((getLocalScale() * objList[i]->getLocalScale()) * 1.05f);
-		cbData.worldMatrix *= temp;
+		temp.setScale((getLocalScale() * 1.05f));
+		mergeTransform *= temp;
 
-		temp.setIdentity();
-		temp.setTranslation(Vector3D(0, 0, 0));
-		cbData.worldMatrix *= temp;
+		if (objList[i]->transforms.size() > 2) {
+			cbData.worldMatrix = objList[i]->transforms[objList[i]->transforms.size() - 1];
 
-		//Anchor origin
-		Matrix4x4 translateToOrigin;
-		translateToOrigin.setIdentity();
-		translateToOrigin.setTranslation(Vector3D(0, 0, 0));
+			if (objList[i]->transforms.size() > 0) {
+				for (int j = objList[i]->transforms.size() - 2; j >= 0; j--) {
+					cbData.worldMatrix *= objList[i]->transforms[j];
+				}
+			}
+			temp.setIdentity();
+			temp.setTranslation(Vector3D(0, 0, 0));
+			cbData.worldMatrix *= temp;
+			cbData.worldMatrix *= mergeTransform;
+		}
 
-		Matrix4x4 newTranslation;
-		newTranslation.setIdentity();
-		newTranslation.setTranslation(getLocalPosition());
+		else {
 
-		translateToOrigin *= cbData.worldMatrix;
-		translateToOrigin *= newTranslation;
+			mergeTransform.setIdentity();
 
-		cbData.worldMatrix = translateToOrigin;
+			temp.setIdentity();
+			temp.setTranslation(objList[i]->getLocalPosition() + getLocalPosition());
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationX(getLocalRotation().m_x + objList[i]->getLocalRotation().m_x);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationY(getLocalRotation().m_y + objList[i]->getLocalRotation().m_y);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationZ(getLocalRotation().m_z + objList[i]->getLocalRotation().m_z);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setScale((getLocalScale() * objList[i]->getLocalScale()));
+			mergeTransform *= temp;
+
+			cbData.worldMatrix *= mergeTransform;
+
+			temp.setIdentity();
+			temp.setTranslation(Vector3D(0, 0, 0));
+			cbData.worldMatrix *= temp;
+		}
 
 		//Add camera transformation
 		Matrix4x4 cameraMatrix = SceneCameraHandler::getInstance()->getSceneCameraViewMatrix();
@@ -299,6 +355,8 @@ void MergedActor::drawBox(int width, int height)
 
 		//Add object transformation
 		Matrix4x4 temp;
+		Matrix4x4 mergeTransform;
+		mergeTransform.setIdentity();
 
 		cbData.worldMatrix.setIdentity();
 
@@ -306,40 +364,69 @@ void MergedActor::drawBox(int width, int height)
 		world_cam.setIdentity();
 
 		temp.setIdentity();
-		temp.setTranslation(objList[i]->getLocalPosition());
-		cbData.worldMatrix *= temp;
+		temp.setTranslation(getLocalPosition());
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationX(getLocalRotation().m_x + objList[i]->getLocalRotation().m_x);
-		cbData.worldMatrix *= temp;
+		temp.setRotationX(getLocalRotation().m_x);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationY(getLocalRotation().m_y + objList[i]->getLocalRotation().m_y);
-		cbData.worldMatrix *= temp;
+		temp.setRotationY(getLocalRotation().m_y);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setRotationZ(getLocalRotation().m_z + objList[i]->getLocalRotation().m_z);
-		cbData.worldMatrix *= temp;
+		temp.setRotationZ(getLocalRotation().m_z);
+		mergeTransform *= temp;
 
 		temp.setIdentity();
-		temp.setScale(getLocalScale() * objList[i]->getLocalScale());
-		cbData.worldMatrix *= temp;
+		temp.setScale((getLocalScale()));
+		mergeTransform *= temp;
 
-		temp.setIdentity();
-		temp.setTranslation(Vector3D(0, 0, 0));
-		cbData.worldMatrix *= temp;
+		if (objList[i]->transforms.size() > 2) {
+			cbData.worldMatrix = objList[i]->transforms[objList[i]->transforms.size() - 1];
 
-		//Anchor origin
-		Matrix4x4 translateToOrigin;
-		translateToOrigin.setIdentity();
-		translateToOrigin.setTranslation(Vector3D(0, 0, 0));
+			if (objList[i]->transforms.size() > 0) {
+				for (int j = objList[i]->transforms.size() - 2; j >= 0; j--) {
+					cbData.worldMatrix *= objList[i]->transforms[j];
+				}
+			}
+			temp.setIdentity();
+			temp.setTranslation(Vector3D(0, 0, 0));
+			cbData.worldMatrix *= temp;
+			cbData.worldMatrix *= mergeTransform;
+		}
 
-		Matrix4x4 newTranslation;
-		newTranslation.setIdentity();
-		newTranslation.setTranslation(getLocalPosition());
+		else {
 
-		translateToOrigin *= cbData.worldMatrix;
-		translateToOrigin *= newTranslation;
+			mergeTransform.setIdentity();
+
+			temp.setIdentity();
+			temp.setTranslation(objList[i]->getLocalPosition() + getLocalPosition());
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationX(getLocalRotation().m_x + objList[i]->getLocalRotation().m_x);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationY(getLocalRotation().m_y + objList[i]->getLocalRotation().m_y);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setRotationZ(getLocalRotation().m_z + objList[i]->getLocalRotation().m_z);
+			mergeTransform *= temp;
+
+			temp.setIdentity();
+			temp.setScale((getLocalScale() * objList[i]->getLocalScale()));
+			mergeTransform *= temp;
+
+			cbData.worldMatrix *= mergeTransform;
+
+			temp.setIdentity();
+			temp.setTranslation(Vector3D(0, 0, 0));
+			cbData.worldMatrix *= temp;
+		}
 
 		//Add camera transformation
 		Matrix4x4 cameraMatrix = SceneCameraHandler::getInstance()->getSceneCameraViewMatrix();

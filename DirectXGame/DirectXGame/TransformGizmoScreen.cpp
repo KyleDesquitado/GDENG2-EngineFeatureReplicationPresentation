@@ -76,15 +76,18 @@ void TransformGizmoScreen::UpdateTransform()
 	{
 		if (this->isTranslating)
 		{	// display gizmo
-			Manipulate(viewMatPtr, projMatPtr, ImGuizmo::TRANSLATE, ImGuizmo::LOCAL, worldMatPtr);
+			Manipulate(viewMatPtr, projMatPtr, ImGuizmo::TRANSLATE, ImGuizmo::WORLD, worldMatPtr);
+			selectedObject->currAction = "translate";
 		}
 		else if (this->isScaling)
 		{	// display gizmo
-			Manipulate(viewMatPtr, projMatPtr, ImGuizmo::SCALE, ImGuizmo::LOCAL, worldMatPtr);
+			Manipulate(viewMatPtr, projMatPtr, ImGuizmo::SCALE, ImGuizmo::WORLD, worldMatPtr);
+			selectedObject->currAction = "scale";
 		}
 		else if (this->isRotating)
 		{	// display gizmo
-			Manipulate(viewMatPtr, projMatPtr, ImGuizmo::ROTATE, ImGuizmo::LOCAL, worldMatPtr);
+			Manipulate(viewMatPtr, projMatPtr, ImGuizmo::ROTATE, ImGuizmo::WORLD, worldMatPtr);
+			selectedObject->currAction = "rotate";
 		}
 		// variable for decomposition
 		float translate[3], rotate[3], scale[3];
@@ -92,6 +95,54 @@ void TransformGizmoScreen::UpdateTransform()
 		// decompose matrix to float*
 		ImGuizmo::DecomposeMatrixToComponents(worldMatPtr, translate, rotate, scale);
 
+		
+		if (selectedObject->prevAction == " ") {
+			selectedObject->prevAction = selectedObject->currAction;
+		}
+
+		if (selectedObject->prevAction != selectedObject->currAction) {
+			//Save transform
+			if (selectedObject->prevAction == "translate")
+			{
+				cout << "translate" << endl;
+				Matrix4x4 temp;
+				temp.setIdentity();
+				temp.setTranslation(Vector3D(translate[0], translate[1], translate[2]));
+				selectedObject->transforms.push_back(temp);
+				selectedObject->prevAction = selectedObject->currAction;
+			}
+			else if (selectedObject->prevAction == "scale")
+			{
+				cout << "scale" << endl;
+				Matrix4x4 temp;
+				temp.setIdentity();
+				temp.setScale(Vector3D(scale[0], scale[1], scale[2]));
+				selectedObject->transforms.push_back(temp);
+				selectedObject->prevAction = selectedObject->currAction;
+			}
+			else if (selectedObject->prevAction == "rotate")
+			{
+				cout << "rotate" << endl;
+				Matrix4x4 temp; temp.setIdentity();
+				Matrix4x4 store; store.setIdentity();
+
+				temp.setIdentity();
+				temp.setRotationX(Utils::degToRad(rotate[0]));
+				store *= temp;
+
+				temp.setIdentity();
+				temp.setRotationY(Utils::degToRad(rotate[1]));
+				store *= temp;
+
+				temp.setIdentity();
+				temp.setRotationZ(Utils::degToRad(rotate[2]));
+				store *= temp;
+
+				selectedObject->transforms.push_back(store);
+
+				selectedObject->prevAction = selectedObject->currAction;
+			}
+		}
 
 		// update transform
 		this->selectedObject->setPosition(Vector3D(translate[0], translate[1], translate[2]));

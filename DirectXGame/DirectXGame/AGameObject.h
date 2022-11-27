@@ -82,6 +82,11 @@ public:
 	};
 
 	Matrix4x4 localMatrix;
+	vector<Matrix4x4> transforms;
+	string prevAction = " ";
+	string currAction = " ";
+	float yMark = 0;
+
 protected:
 	string name;
 	Vector3D localPosition;
