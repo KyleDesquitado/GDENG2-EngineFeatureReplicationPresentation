@@ -36,6 +36,12 @@ void GameObjectManager::createPyramid()
 	objList.push_back((pyramid));
 	selectedObjList.push_back(pyramid->isSelected);
 }
+void GameObjectManager::createPlane()
+{
+	Plane* plane = new Plane("Plane");
+	objList.push_back((plane));
+	selectedObjList.push_back(plane->isSelected);
+}
 void GameObjectManager::changePosition(int i, float x, float y, float z)
 {
 	objList[i]->setPosition(x, y, z);
