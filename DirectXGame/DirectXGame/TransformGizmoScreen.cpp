@@ -34,11 +34,22 @@ void TransformGizmoScreen::drawUI()
 		this->isTranslating = true;
 	}
 	//radio button scaling
-	if (ImGui::RadioButton("Scale", isScaling))
+	if (GameObjectManager::get() != nullptr)
 	{
-		ResetAllFlags();
-		this->isScaling = true;
+		if (GameObjectManager::get()->getSelectedObject() != nullptr)
+		{
+			if (GameObjectManager::get()->getSelectedObject()->getVertexBuffer() == nullptr)
+			{
+				if (ImGui::RadioButton("Scale", isScaling))
+				{
+					ResetAllFlags();
+					this->isScaling = true;
+				}
+			}
+		}
+		
 	}
+	
 	// radio button rotation
 	if (ImGui::RadioButton("Rotate", isRotating))
 	{
