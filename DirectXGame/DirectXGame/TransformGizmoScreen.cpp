@@ -49,13 +49,25 @@ void TransformGizmoScreen::drawUI()
 		}
 		
 	}
-	
-	// radio button rotation
-	if (ImGui::RadioButton("Rotate", isRotating))
+
+	if (GameObjectManager::get() != nullptr)
 	{
-		ResetAllFlags();
-		this->isRotating = true;
+		if (GameObjectManager::get()->getSelectedObject() != nullptr)
+		{
+			if (GameObjectManager::get()->getSelectedObject()->getVertexBuffer() != nullptr)
+			{
+				// radio button rotation
+				if (ImGui::RadioButton("Rotate", isRotating))
+				{
+					ResetAllFlags();
+					this->isRotating = true;
+				}
+			}
+		}
+
 	}
+	
+	
 	
 	ImGui::End();
 #pragma endregion Gizmo
